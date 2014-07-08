@@ -19,7 +19,7 @@
 	include_once realpath(__DIR__ . DIRECTORY_SEPARATOR . 'utils' . DIRECTORY_SEPARATOR . 'Pagination.php');
 	$db = require_once realpath(__DIR__ . DIRECTORY_SEPARATOR . 'db.conf.php');
 
-	$result = mysqli_query($db, 'SELECT * FROM `photos` ORDER by `date` LIMIT 20 OFFSET ' . $page * 20);
+	$result = mysqli_query($db, 'SELECT * FROM `photos` ORDER by `date` DESC LIMIT 20 OFFSET ' . $page * 20);
 	if ($result) {
 	$counter = 0;
 	while ($data = mysqli_fetch_assoc($result)) {
