@@ -23,6 +23,12 @@ $router
 		->get('cross tag remove', '/crossTag/remove/(?<tagId>\d+)/', function (Array $_request, $tagId) {
 			Controller::init(array_merge($_request, array('tagId' => $tagId)))->removeCrossTag();
 		})
+		->get('missed tag add', '/missedTag/add/(?<tagId>\d+)/', function (Array $_request, $tagId) {
+			Controller::init(array_merge($_request, array('tagId' => $tagId)))->addMissedTag();
+		})
+		->get('missed tag remove', '/missedTag/remove/(?<tagId>\d+)/', function (Array $_request, $tagId) {
+			Controller::init(array_merge($_request, array('tagId' => $tagId)))->removeMissedTag();
+		})
 		->get('like photo', '/like/(?<photoId>\d+)/', function (Array $_request, $photoId) {
 			Controller::init(array_merge($_request, array('photoId' => $photoId)))->like();
 		});

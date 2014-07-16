@@ -11,35 +11,58 @@ class Controller extends AController
 
 	public function index()
 	{
-		list($userTags, $userTagsList) = $this->getUserTags();
+		list($userCrossTags, $userCrossTagsList) = $this->getUserTags('cross');
+		list($userMissedTags, $userMissedTagsList) = $this->getUserTags('missed');
 
-		if (!empty($userTags))
-			$stmt = App::$db->select('photos.id, photos.url, photos.date')
-					->from('photos photos')
-					->join('INNER JOIN photo_tags ON photo_tags.photo_id = photos.id
-													  AND photo_tags.tag_id IN ( ' . implode(",", $userTags) . ' )')
-					->groupBy('photos.id')
-					->having('count( photos.id ) = ' . count($userTags))
-					->orderBy('photos.date DESC')
-					->limit(20, $this->getCurrentPage() * 20)
-					->execute();
-		else
-			$stmt = App::$db->select('photos.id, photos.url, photos.date')
-					->from('photos photos')
-					->orderBy('photos.date DESC')
-					->limit(20, $this->getCurrentPage() * 20)
-					->execute();
+		$stmt = App::$db->select('photos.id, photos.url, photos.date')
+				->from('photos photos')
+				->limit(20, $this->getCurrentPage() * 20)
+				->orderBy('photos.date DESC');
+
+
+		if (!empty($userCrossTags) || !empty($userMissedTags)) {
+
+			$joinStr = 'INNER JOIN photo_tags ON photo_tags.photo_id = photos.id';
+
+			if (!empty($userCrossTags)) {
+				$joinStr .= ' AND photo_tags.tag_id IN ( ' . implode(",", $userCrossTags) . ' )';
+				$stmt->having('count( photos.id ) = ' . count($userCrossTags));
+			}
+
+			if (!empty($userMissedTags)) {
+
+				$stmtPhotosWhithMissedTags = App::$db->select('photo_id')->from('photo_tags')->whereIn('tag_id', $userMissedTags)->groupBy('photo_id')->execute();
+				$photosIdsWhithMissedTags = array();
+
+				while($missedPhotoId = $stmtPhotosWhithMissedTags->fetch(PDO::FETCH_COLUMN))
+					$photosIdsWhithMissedTags[] = $missedPhotoId;
+
+				$stmt->whereNotIn('photos.id', $photosIdsWhithMissedTags);
+			}
+
+			$stmt->join($joinStr);
+			$stmt->groupBy('photos.id');
+		}
 
 		$photoList = array();
 
-		while ($photo = $stmt->fetchInto(new Photo(), 'photos'))
-			$photoList[] = $photo;
+		try {
+			$stmt = $stmt->execute();
+
+			while ($photo = $stmt->fetchInto(new Photo(), 'photos'))
+				$photoList[] = $photo;
+
+		} catch (PDOException $e) {
+			echo $e->getMessage();
+		}
 
 		$this->render('view/index.php', array(
-				'photoList' => $photoList,
-				'userTags'  => $userTags,
-				'userTagsList' => $userTagsList,
-				'paging' => $this->getPagination()
+				'photoList'          => $photoList,
+				'userCrossTags'      => $userCrossTags,
+				'userCrossTagsList'  => $userCrossTagsList,
+				'userMissedTags'     => $userMissedTags,
+				'userMissedTagsList' => $userMissedTagsList,
+				'paging'             => $this->getPagination()
 		));
 	}
 
@@ -55,6 +78,22 @@ class Controller extends AController
 	{
 		if (!empty($this->request['tagId']))
 			$this->removeTag((int)$this->request['tagId'], 'cross');
+
+		$this->index();
+	}
+
+	public function addMissedTag()
+	{
+		if (!empty($this->request['tagId']))
+			$this->addTag((int)$this->request['tagId'], 'missed');
+
+		$this->index();
+	}
+
+	public function removeMissedTag()
+	{
+		if (!empty($this->request['tagId']))
+			$this->removeTag((int)$this->request['tagId'], 'missed');
 
 		$this->index();
 	}
@@ -100,9 +139,9 @@ class Controller extends AController
 			return 0;
 	}
 
-	public function getUserTags()
+	public function getUserTags($name)
 	{
-		$userTags = is_array(App::$session['cross']) ? App::$session['cross'] : array();
+		$userTags = is_array(App::$session[$name]) ? App::$session[$name] : array();
 		$userTagsList = array();
 
 		if (!empty($userTags)) {
@@ -122,31 +161,29 @@ class Controller extends AController
 	{
 		$userTags = is_array(App::$session['cross']) ? App::$session['cross'] : array();
 
-		if(!empty($userTags))
-		{
+		if (!empty($userTags)) {
 			$totalPhotos = App::$db->execQueryString('
 				SELECT COUNT(*) as counter FROM (
 					SELECT photos.id, photos.url, photos.date
 						FROM photos photos
 					INNER JOIN photo_tags ON photo_tags.photo_id = photos.id
-										  AND photo_tags.tag_id IN ( '.implode(",", $userTags).' )
+										  AND photo_tags.tag_id IN ( ' . implode(",", $userTags) . ' )
 					GROUP BY photos.id
-					HAVING count( photos.id ) = '.count($userTags).'
+					HAVING count( photos.id ) = ' . count($userTags) . '
 					) as countAll')->fetchColumn(0);
-		}
-		else
+		} else
 			$totalPhotos = App::$db->count('photos', '');
 
 		$paging = new Pagination();
-		$paging->set('urlscheme','/?page=%page%');
-		$paging->set('perpage',20);
-		$paging->set('page',max(1,intval($this->getCurrentPage())));
-		$paging->set('total',$totalPhotos);
-		$paging->set('nexttext','Next Page');
-		$paging->set('prevtext','Previous Page');
-		$paging->set('focusedclass','selected');
-		$paging->set('delimiter','   ');
-		$paging->set('numlinks',9);
+		$paging->set('urlscheme', '/?page=%page%');
+		$paging->set('perpage', 20);
+		$paging->set('page', max(1, intval($this->getCurrentPage())));
+		$paging->set('total', $totalPhotos);
+		$paging->set('nexttext', 'Next Page');
+		$paging->set('prevtext', 'Previous Page');
+		$paging->set('focusedclass', 'selected');
+		$paging->set('delimiter', '   ');
+		$paging->set('numlinks', 9);
 
 		return $paging;
 
