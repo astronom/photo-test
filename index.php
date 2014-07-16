@@ -14,14 +14,17 @@ App::init();
 
 $router = new Hoa\Router\Http();
 $router
-		->get('i', '/', function (Array $_request) {
+		->get('index', '/', function (Array $_request) {
 			Controller::init($_request)->index();
 		})
-		->get('ca', '/crossTag/add/(?<tagId>\d+)/', function (Array $_request, $tagId) {
+		->get('cross tag add', '/crossTag/add/(?<tagId>\d+)/', function (Array $_request, $tagId) {
 			Controller::init(array_merge($_request, array('tagId' => $tagId)))->addCrossTag();
 		})
-		->get('cr', '/crossTag/remove/(?<tagId>\d+)/', function (Array $_request, $tagId) {
+		->get('cross tag remove', '/crossTag/remove/(?<tagId>\d+)/', function (Array $_request, $tagId) {
 			Controller::init(array_merge($_request, array('tagId' => $tagId)))->removeCrossTag();
+		})
+		->get('like photo', '/like/(?<photoId>\d+)/', function (Array $_request, $photoId) {
+			Controller::init(array_merge($_request, array('photoId' => $photoId)))->like();
 		});
 
 $dispatcher = new Hoa\Dispatcher\Basic();

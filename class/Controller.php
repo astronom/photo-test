@@ -62,13 +62,13 @@ class Controller extends AController
 
 	public function like()
 	{
-		if (!empty($this->request['user_id']))
-			$user_id = (int)$this->request['user_id'];
-		else
-			$user_id = false;
+//		if (!empty($this->request['user_id']))
+//			$user_id = (int)$this->request['user_id'];
+//		else
+		$user_id = 1;
 
-		if (!empty($this->request['photo_id']))
-			$photo_id = (int)$this->request['photo_id'];
+		if (!empty($this->request['photoId']))
+			$photo_id = (int)$this->request['photoId'];
 		else
 			$photo_id = false;
 

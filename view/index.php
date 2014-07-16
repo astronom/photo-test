@@ -47,7 +47,6 @@
 		</td>
 		<?php $counter++; ?>
 		<?php endforeach; ?>
-
 	</tr>
 	<tr>
 		<td colspan="5">
