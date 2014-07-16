@@ -1,6 +1,8 @@
 <?php
 
-$db = require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'db.conf.php');
+require_once realpath(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'db.conf.php');
+
+$db = mysqli_connect('localhost',DB_USER, DB_PASS, 'photo-test');
 
 $data_path = realpath(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'data');
 
