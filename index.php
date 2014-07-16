@@ -1,72 +1,33 @@
-<html>
-<head>
-	<title>Тестовое задание</title>
-</head>
-<body>
-<table>
-	<?php
-	/**
-	 * Created by PhpStorm.
-	 * User: astronom
-	 * Date: 08.07.14
-	 * Time: 13:41
-	 */
-	if (!empty($_GET['page']))
-		$page = (int)$_GET['page'];
-	else
-		$page = 0;
+<?php
+/**
+ * Created by PhpStorm.
+ * User: astronom
+ * Date: 08.07.14
+ * Time: 13:41
+ */
+require "vendor/autoload.php";
+require 'db.conf.php';
 
-	include_once realpath(__DIR__ . DIRECTORY_SEPARATOR . 'utils' . DIRECTORY_SEPARATOR . 'Pagination.php');
-	$db = require_once realpath(__DIR__ . DIRECTORY_SEPARATOR . 'db.conf.php');
+use DebugBar\StandardDebugBar;
 
-	$result = mysqli_query($db, 'SELECT * FROM `photos` ORDER by `date` DESC LIMIT 20 OFFSET ' . $page * 20);
-	if ($result) {
-	$counter = 0;
-	while ($data = mysqli_fetch_assoc($result)) {
-	?>
-	<?php if ($counter % 5 == 0): ?>
-	<?php if ($counter > 0): ?>
-		</tr>
-	<?php endif ?>
-	<tr>
-		<?php endif ?>
-		<td>
-			<img src="<?php echo $data['url'] ?>">
-			<span><?php echo $data['date'] ?></span>
-		</td>
-		<?php
-		$counter++;
-		}
-		}
+App::init();
 
-		$photos_count_q = mysqli_query($db, 'SELECT COUNT(`id`) FROM `photos`');
-		$total_photos = mysqli_fetch_array($photos_count_q)[0];
+$router = new Hoa\Router\Http();
+$router
+		->get('i', '/', function (Array $_request) {
+			Controller::init($_request)->index();
+		})
+		->get('ca', '/crossTag/add/(?<tagId>\d+)/', function (Array $_request, $tagId) {
+			Controller::init(array_merge($_request, array('tagId' => $tagId)))->addCrossTag();
+		})
+		->get('cr', '/crossTag/remove/(?<tagId>\d+)/', function (Array $_request, $tagId) {
+			Controller::init(array_merge($_request, array('tagId' => $tagId)))->removeCrossTag();
+		});
 
-		$paging = new Pagination();
-		$paging->set('urlscheme','index.php?page=%page%');
-		$paging->set('perpage',20);
-		$paging->set('page',max(1,intval($_GET['page'])));
-		$paging->set('total',$total_photos);
-		$paging->set('nexttext','Next Page');
-		$paging->set('prevtext','Previous Page');
-		$paging->set('focusedclass','selected');
-		$paging->set('delimiter','   ');
-		$paging->set('numlinks',9);
+$dispatcher = new Hoa\Dispatcher\Basic();
+$dispatcher->dispatch($router);
 
-		?>
-		</tr><tr>
-			<td colspan="5">
-				<?php
-					$paging->display();
-				?>
-			</td>
-		</tr>
-		<?php
-			mysqli_close($db);
-		?>
 
-</table>
-</body>
-</html>
-
+//$debug = new StandardDebugBar();
+//$debugRenderer = $debug->getJavascriptRenderer();
 

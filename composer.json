@@ -1,0 +1,24 @@
+{
+	"name": "astronom/photo-test",
+	"description": "photo test",
+	"minimum-stability": "dev",
+	"license": "proprietary",
+	"authors": [
+		{
+			"name": "Manichev Alexander",
+			"email": "a.manichev@gmail.com"
+		}
+	],
+	"require": {
+		"hoa/session": "dev-master",
+		"sorskod/db": "dev-master",
+		"hoa/router": "dev-master",
+		"hoa/dispatcher": "dev-master"
+	},
+	"require-dev": {
+		"maximebf/debugbar": "1.*"
+	},
+	"autoload": {
+		"classmap": ["class/"]
+	}
+}
