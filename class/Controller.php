@@ -19,6 +19,7 @@ class Controller extends AController
 				->limit(20, $this->getCurrentPage() * 20)
 				->orderBy('photos.date DESC');
 
+		$photosIdsWhithMissedTags = array();
 
 		if (!empty($userCrossTags) || !empty($userMissedTags)) {
 
@@ -34,7 +35,7 @@ class Controller extends AController
 				$stmtPhotosWhithMissedTags = App::$db->select('photo_id')->from('photo_tags')->whereIn('tag_id', $userMissedTags)->groupBy('photo_id')->execute();
 				$photosIdsWhithMissedTags = array();
 
-				while($missedPhotoId = $stmtPhotosWhithMissedTags->fetch(PDO::FETCH_COLUMN))
+				while ($missedPhotoId = $stmtPhotosWhithMissedTags->fetch(PDO::FETCH_COLUMN))
 					$photosIdsWhithMissedTags[] = $missedPhotoId;
 
 				$stmt->whereNotIn('photos.id', $photosIdsWhithMissedTags);
@@ -62,7 +63,7 @@ class Controller extends AController
 				'userCrossTagsList'  => $userCrossTagsList,
 				'userMissedTags'     => $userMissedTags,
 				'userMissedTagsList' => $userMissedTagsList,
-				'paging'             => $this->getPagination()
+				'paging'             => $this->getPagination($photosIdsWhithMissedTags)
 		));
 	}
 
@@ -157,20 +158,35 @@ class Controller extends AController
 		return array($userTags, $userTagsList);
 	}
 
-	public function getPagination()
+	public function getPagination($removePhotoIds = array())
 	{
-		$userTags = is_array(App::$session['cross']) ? App::$session['cross'] : array();
+		$userCrossTags = is_array(App::$session['cross']) ? App::$session['cross'] : array();
+		$userMissedTags = is_array(App::$session['missed']) ? App::$session['missed'] : array();
 
-		if (!empty($userTags)) {
-			$totalPhotos = App::$db->execQueryString('
-				SELECT COUNT(*) as counter FROM (
-					SELECT photos.id, photos.url, photos.date
+		if (!empty($userTags) || !empty($userMissedTags)) {
+			$query = 'SELECT photos.id
 						FROM photos photos
-					INNER JOIN photo_tags ON photo_tags.photo_id = photos.id
-										  AND photo_tags.tag_id IN ( ' . implode(",", $userTags) . ' )
-					GROUP BY photos.id
-					HAVING count( photos.id ) = ' . count($userTags) . '
-					) as countAll')->fetchColumn(0);
+							INNER JOIN photo_tags ON photo_tags.photo_id = photos.id';
+
+			if (!empty($userCrossTags))
+				$query .= ' AND photo_tags.tag_id IN ( ' . implode(",", $userCrossTags) . ' )';
+
+
+			if (!empty($removePhotoIds))
+				$query .= ' WHERE photos.id NOT IN ( ' . implode(",", $removePhotoIds) . ' )';
+
+			$query .= ' GROUP BY photos.id';
+
+			if (!empty($userCrossTags))
+				$query .= ' HAVING count( photos.id ) = ' . count($userCrossTags);
+
+			$totalPhotos = 0;
+
+			try {
+				$totalPhotos = App::$db->execQueryString('SELECT COUNT(*) as counter FROM ( ' . $query . ' ) as countAll')->fetchColumn(0);
+			} catch (PDOException $e) {
+				echo $e->getMessage();
+			}
 		} else
 			$totalPhotos = App::$db->count('photos', '');
 
